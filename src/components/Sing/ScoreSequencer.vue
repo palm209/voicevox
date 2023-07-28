@@ -1,12 +1,13 @@
 <template>
   <div
-    class="score-sequencer"
+    :class="`score-sequencer score-sequencer-${sequencerMode
+      .split('_')
+      .join('-')
+      .toLowerCase()}`"
     id="score-sequencer"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
     @mouseup="handleMouseUp"
-    @dblclick="addNote"
-    @dblclick.prevent.stop="removeNote"
   >
     <!-- 鍵盤 -->
     <sequencer-keys />
@@ -68,7 +69,7 @@
       </svg>
       <sequencer-note
         v-for="(note, index) in notes"
-        :key="index"
+        :key="note.id || index"
         :note="note"
         :index="index"
         :cursorX="cursorX"
@@ -135,20 +136,23 @@ export default defineComponent({
     SequencerNote,
   },
   setup() {
-    enum DragMode {
+    // TODO: Noteなどでも利用するため、storeに切り出す
+    enum SequencerMode {
       NONE = "NONE",
-      MOVE = "MOVE",
-      NOTE_RIGHT = "NOTE_RIGHT",
-      NOTE_LEFT = "NOTE_LEFT",
       SELECT = "SELECT",
+      DRAG_NOTE_MOVE = "DRAG_NOTE_MOVE",
+      DRAG_NOTE_RIGHT = "DRAG_NOTE_RIGHT",
+      DRAG_NOTE_LEFT = "DRAG_NOTE_LEFT",
+      INPUT_LYRIC = "INPUT_LYRIC",
     }
     const store = useStore();
     const state = store.state;
+    // シーケンサモード
+    const sequencerMode = ref(SequencerMode.NONE);
     // カーソルポジション
     const cursorX = ref(0);
     const cursorY = ref(0);
     // ドラッグ状態
-    const dragMode = ref<DragMode>(DragMode.NONE);
     const dragId = ref(0);
     const dragMoveCurrentX = ref();
     const dragMoveCurrentY = ref();
@@ -218,16 +222,18 @@ export default defineComponent({
 
     // マウスダウン
     // 選択中のノートがある場合は選択リセット
-    const handleMouseDown = () => {
+    const handleMouseDown = (event: MouseEvent) => {
       if (0 < selectedNoteIds.value.length) {
         store.dispatch("CLEAR_SELECTED_NOTE_IDS");
+      } else {
+        addNote(event);
       }
     };
 
     // マウス移動
     // ドラッグ中の場合はカーソル位置を保持
     const handleMouseMove = (event: MouseEvent) => {
-      if (dragMode.value !== DragMode.NONE) {
+      if (sequencerMode.value !== SequencerMode.NONE) {
         cursorX.value = event.clientX;
         cursorY.value = event.clientY;
       }
@@ -236,9 +242,9 @@ export default defineComponent({
     // マウスアップ
     // ドラッグしていた場合はドラッグを終了
     const handleMouseUp = () => {
-      if (dragMode.value !== DragMode.NONE) {
+      if (sequencerMode.value !== SequencerMode.NONE) {
         cancelAnimationFrame(dragId.value);
-        dragMode.value = DragMode.NONE;
+        sequencerMode.value = SequencerMode.NONE;
         return;
       }
     };
@@ -248,7 +254,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (dragMode.value !== DragMode.MOVE) {
+      if (sequencerMode.value !== SequencerMode.DRAG_NOTE_MOVE) {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -308,7 +314,7 @@ export default defineComponent({
     // ノートドラッグ開始
     const handleDragMoveStart = (event: MouseEvent) => {
       if (selectedNoteIds.value.length > 0) {
-        dragMode.value = DragMode.MOVE;
+        sequencerMode.value = SequencerMode.DRAG_NOTE_MOVE;
         setTimeout(() => {
           dragMoveCurrentX.value = event.clientX;
           dragMoveCurrentY.value = event.clientY;
@@ -323,7 +329,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (dragMode.value !== DragMode.NOTE_RIGHT) {
+      if (sequencerMode.value !== SequencerMode.DRAG_NOTE_RIGHT) {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -362,7 +368,7 @@ export default defineComponent({
 
     // ノート右ドラッグ開始
     const handleDragRightStart = (event: MouseEvent) => {
-      dragMode.value = DragMode.NOTE_RIGHT;
+      sequencerMode.value = SequencerMode.DRAG_NOTE_RIGHT;
       setTimeout(() => {
         dragDurationCurrentX.value = event.clientX;
         dragId.value = requestAnimationFrame(dragRight);
@@ -375,7 +381,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (dragMode.value !== DragMode.NOTE_LEFT) {
+      if (sequencerMode.value !== SequencerMode.DRAG_NOTE_LEFT) {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -418,7 +424,7 @@ export default defineComponent({
 
     // ノート左ドラッグ開始
     const handleDragLeftStart = (event: MouseEvent) => {
-      dragMode.value = DragMode.NOTE_LEFT;
+      sequencerMode.value = SequencerMode.DRAG_NOTE_LEFT;
       setTimeout(() => {
         dragDurationCurrentX.value = event.clientX;
         dragId.value = requestAnimationFrame(dragLeft);
@@ -578,7 +584,7 @@ export default defineComponent({
       getPitchFromMidi,
       setZoomX,
       setZoomY,
-      addNote,
+      sequencerMode,
       handleMouseDown,
       handleMouseMove,
       handleMouseUp,
@@ -604,8 +610,13 @@ export default defineComponent({
   position: relative;
   width: 100%;
 
-  &.move {
+  &.score-sequencer-drag-note-move {
     cursor: move;
+  }
+
+  &.score-sequencer-drag-note-right,
+  &.score-sequencer-drag-note-left {
+    cursor: ew-resize;
   }
 }
 
