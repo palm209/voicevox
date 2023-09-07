@@ -1,9 +1,6 @@
 <template>
   <div
-    :class="`score-sequencer score-sequencer-${sequencerMode
-      .split('_')
-      .join('-')
-      .toLowerCase()}`"
+    :class="`score-sequencer`"
     id="score-sequencer"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
@@ -136,19 +133,10 @@ export default defineComponent({
     SequencerNote,
   },
   setup() {
-    // TODO: Noteなどでも利用するため、storeに切り出す
-    enum SequencerMode {
-      NONE = "NONE",
-      SELECT = "SELECT",
-      DRAG_NOTE_MOVE = "DRAG_NOTE_MOVE",
-      DRAG_NOTE_RIGHT = "DRAG_NOTE_RIGHT",
-      DRAG_NOTE_LEFT = "DRAG_NOTE_LEFT",
-      INPUT_LYRIC = "INPUT_LYRIC",
-    }
     const store = useStore();
     const state = store.state;
     // シーケンサモード
-    const sequencerMode = ref(SequencerMode.NONE);
+    const sequencerState = ref(state.sequencerState);
     // カーソルポジション
     const cursorX = ref(0);
     const cursorY = ref(0);
@@ -233,7 +221,7 @@ export default defineComponent({
     // マウス移動
     // ドラッグ中の場合はカーソル位置を保持
     const handleMouseMove = (event: MouseEvent) => {
-      if (sequencerMode.value !== SequencerMode.NONE) {
+      if (sequencerState.value !== "NONE") {
         cursorX.value = event.clientX;
         cursorY.value = event.clientY;
       }
@@ -242,9 +230,9 @@ export default defineComponent({
     // マウスアップ
     // ドラッグしていた場合はドラッグを終了
     const handleMouseUp = () => {
-      if (sequencerMode.value !== SequencerMode.NONE) {
+      if (sequencerState.value !== "NONE") {
         cancelAnimationFrame(dragId.value);
-        sequencerMode.value = SequencerMode.NONE;
+        sequencerState.value = "NONE";
         return;
       }
     };
@@ -254,7 +242,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (sequencerMode.value !== SequencerMode.DRAG_NOTE_MOVE) {
+      if (sequencerState.value !== "DRAG_MOVE") {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -314,7 +302,7 @@ export default defineComponent({
     // ノートドラッグ開始
     const handleDragMoveStart = (event: MouseEvent) => {
       if (selectedNoteIds.value.length > 0) {
-        sequencerMode.value = SequencerMode.DRAG_NOTE_MOVE;
+        sequencerState.value = "DRAG_MOVE";
         setTimeout(() => {
           dragMoveCurrentX.value = event.clientX;
           dragMoveCurrentY.value = event.clientY;
@@ -329,7 +317,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (sequencerMode.value !== SequencerMode.DRAG_NOTE_RIGHT) {
+      if (sequencerState.value !== "DRAG_RESIZE") {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -368,7 +356,7 @@ export default defineComponent({
 
     // ノート右ドラッグ開始
     const handleDragRightStart = (event: MouseEvent) => {
-      sequencerMode.value = SequencerMode.DRAG_NOTE_RIGHT;
+      sequencerState.value = "DRAG_RESIZE";
       setTimeout(() => {
         dragDurationCurrentX.value = event.clientX;
         dragId.value = requestAnimationFrame(dragRight);
@@ -381,7 +369,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (sequencerMode.value !== SequencerMode.DRAG_NOTE_LEFT) {
+      if (sequencerState.value !== "DRAG_RESIZE") {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -424,7 +412,7 @@ export default defineComponent({
 
     // ノート左ドラッグ開始
     const handleDragLeftStart = (event: MouseEvent) => {
-      sequencerMode.value = SequencerMode.DRAG_NOTE_LEFT;
+      sequencerState.value = "DRAG_RESIZE";
       setTimeout(() => {
         dragDurationCurrentX.value = event.clientX;
         dragId.value = requestAnimationFrame(dragLeft);
@@ -584,7 +572,6 @@ export default defineComponent({
       getPitchFromMidi,
       setZoomX,
       setZoomY,
-      sequencerMode,
       handleMouseDown,
       handleMouseMove,
       handleMouseUp,

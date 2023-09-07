@@ -689,13 +689,23 @@ export type AudioCommandStoreTypes = {
  * Singing Store Types
  */
 
+export enum SingingSequencerMode {
+  None = "NONE",
+  NoteSelected = "NOTE_SELECTED",
+  Dragging = "DRAGGING",
+  RangeSelect = "RANGE_SELECT",
+  LyricInput = "LYRIC_INPUT",
+  // モードによって他操作を抑制する・操作が変更されるものについてここに追加する
+  // たとえば未選択(None)の場合、シーケンサクリックはノートの追加となるが、ノート選択中(NoteSelected)の場合はノートの選択を解除する
+  // 他、音素やピッチカーブ編集時など必要になった段階で追加
+}
+
 export type SingingStoreState = {
   engineId?: string;
   styleId?: number;
   score?: Score;
-  // NOTE: UIの状態などは分割・統合した方がよさそうだが、ボイス側と混在させないためいったん局所化する
   isShowSinger: boolean;
-  // NOTE: オーディオ再生はボイスと同様もしくは拡張して使う？
+  sequencerMode: SingingSequencerMode;
   sequencerZoomX: number;
   sequencerZoomY: number;
   sequencerScrollX: number;

@@ -15,6 +15,7 @@ import {
   Tempo,
   TimeSignature,
   Note,
+  SingingSequencerMode,
   SingingStoreState,
   SingingStoreTypes,
   SaveResultObject,
@@ -328,6 +329,7 @@ export const singingStoreState: SingingStoreState = {
   score: undefined,
   // NOTE: UIの状態は試行のためsinging.tsに局所化する+Hydrateが必要
   isShowSinger: true,
+  sequencerMode: SingingSequencerMode.None,
   sequencerZoomX: 0.5,
   sequencerZoomY: 0.75,
   sequencerScrollY: 60, // Y軸 midi number
