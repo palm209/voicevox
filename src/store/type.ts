@@ -689,16 +689,17 @@ export type AudioCommandStoreTypes = {
  * Singing Store Types
  */
 
-export enum SingingSequencerMode {
-  None = "NONE",
-  NoteSelected = "NOTE_SELECTED",
-  Dragging = "DRAGGING",
-  RangeSelect = "RANGE_SELECT",
-  LyricInput = "LYRIC_INPUT",
-  // モードによって他操作を抑制する・操作が変更されるものについてここに追加する
-  // たとえば未選択(None)の場合、シーケンサクリックはノートの追加となるが、ノート選択中(NoteSelected)の場合はノートの選択を解除する
-  // 他、音素やピッチカーブ編集時など必要になった段階で追加
-}
+// シーケンサ内のモードによって他操作を抑制する・操作が変更されるものについてここに追加する
+// たとえば未選択(None)の場合、シーケンサクリックはノートの追加となるが、ノート選択中(NoteSelected)の場合はノートの選択を解除する
+// 他、発音記号やピッチカーブ編集時など必要になった段階で追加 / enumも考えたが他が文字列なので文字列で統一
+
+export type SingingSequencerMode =
+  | "NONE"
+  | "NOTE_SELECTED"
+  | "DRAG_RESIZE"
+  | "DRAG_MOVE"
+  | "RANGE_SELECT"
+  | "LYRIC_INPUT";
 
 export type SingingStoreState = {
   engineId?: string;

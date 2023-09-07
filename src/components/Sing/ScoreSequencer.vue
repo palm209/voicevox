@@ -1,6 +1,6 @@
 <template>
   <div
-    :class="`score-sequencer`"
+    :class="`score-sequencer ${sequencerMode.toLocaleLowerCase()}`"
     id="score-sequencer"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
@@ -115,6 +115,7 @@
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from "vue";
 import { useStore } from "@/store";
+import { SingingSequencerMode as mode } from "@/store/type";
 import { v4 as uuidv4 } from "uuid";
 import SequencerKeys from "@/components/Sing/SequencerKeys.vue";
 import SequencerNote from "@/components/Sing/SequencerNote.vue";
@@ -136,7 +137,7 @@ export default defineComponent({
     const store = useStore();
     const state = store.state;
     // シーケンサモード
-    const sequencerState = ref(state.sequencerState);
+    const sequencerMode = ref(state.sequencerMode);
     // カーソルポジション
     const cursorX = ref(0);
     const cursorY = ref(0);
@@ -213,7 +214,8 @@ export default defineComponent({
     const handleMouseDown = (event: MouseEvent) => {
       if (0 < selectedNoteIds.value.length) {
         store.dispatch("CLEAR_SELECTED_NOTE_IDS");
-      } else {
+      }
+      if (sequencerMode.value === "NONE") {
         addNote(event);
       }
     };
@@ -221,7 +223,7 @@ export default defineComponent({
     // マウス移動
     // ドラッグ中の場合はカーソル位置を保持
     const handleMouseMove = (event: MouseEvent) => {
-      if (sequencerState.value !== "NONE") {
+      if (sequencerMode.value !== "NONE") {
         cursorX.value = event.clientX;
         cursorY.value = event.clientY;
       }
@@ -230,9 +232,9 @@ export default defineComponent({
     // マウスアップ
     // ドラッグしていた場合はドラッグを終了
     const handleMouseUp = () => {
-      if (sequencerState.value !== "NONE") {
+      if (sequencerMode.value !== "NONE") {
         cancelAnimationFrame(dragId.value);
-        sequencerState.value = "NONE";
+        sequencerMode.value = "NONE";
         return;
       }
     };
@@ -242,7 +244,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (sequencerState.value !== "DRAG_MOVE") {
+      if (sequencerMode.value !== "DRAG_MOVE") {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -302,7 +304,7 @@ export default defineComponent({
     // ノートドラッグ開始
     const handleDragMoveStart = (event: MouseEvent) => {
       if (selectedNoteIds.value.length > 0) {
-        sequencerState.value = "DRAG_MOVE";
+        sequencerMode.value = "DRAG_MOVE";
         setTimeout(() => {
           dragMoveCurrentX.value = event.clientX;
           dragMoveCurrentY.value = event.clientY;
@@ -317,7 +319,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (sequencerState.value !== "DRAG_RESIZE") {
+      if (sequencerMode.value !== "DRAG_RESIZE") {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -356,7 +358,7 @@ export default defineComponent({
 
     // ノート右ドラッグ開始
     const handleDragRightStart = (event: MouseEvent) => {
-      sequencerState.value = "DRAG_RESIZE";
+      sequencerMode.value = "DRAG_RESIZE";
       setTimeout(() => {
         dragDurationCurrentX.value = event.clientX;
         dragId.value = requestAnimationFrame(dragRight);
@@ -369,7 +371,7 @@ export default defineComponent({
       if (!state.score) {
         throw new Error("Score is undefined.");
       }
-      if (sequencerState.value !== "DRAG_RESIZE") {
+      if (sequencerMode.value !== "DRAG_RESIZE") {
         cancelAnimationFrame(dragId.value);
         return;
       }
@@ -412,7 +414,7 @@ export default defineComponent({
 
     // ノート左ドラッグ開始
     const handleDragLeftStart = (event: MouseEvent) => {
-      sequencerState.value = "DRAG_RESIZE";
+      sequencerMode.value = "DRAG_RESIZE";
       setTimeout(() => {
         dragDurationCurrentX.value = event.clientX;
         dragId.value = requestAnimationFrame(dragLeft);
@@ -572,6 +574,7 @@ export default defineComponent({
       getPitchFromMidi,
       setZoomX,
       setZoomY,
+      sequencerMode,
       handleMouseDown,
       handleMouseMove,
       handleMouseUp,
@@ -597,12 +600,15 @@ export default defineComponent({
   position: relative;
   width: 100%;
 
-  &.score-sequencer-drag-note-move {
-    cursor: move;
+  &.none {
+    cursor: default;
   }
 
-  &.score-sequencer-drag-note-right,
-  &.score-sequencer-drag-note-left {
+  &.drag_move {
+    cursor: grabbing;
+  }
+
+  &.drag_resize {
     cursor: ew-resize;
   }
 }

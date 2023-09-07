@@ -118,6 +118,7 @@ describe("store/vuex.js test", () => {
           tweakableSliderByScroll: false,
         },
         isShowSinger: true,
+        sequencerMode: "NONE",
         sequencerZoomX: 1,
         sequencerZoomY: 1,
         sequencerScrollX: 0,
