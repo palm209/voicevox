@@ -6,6 +6,7 @@ import {
   Tempo,
   TimeSignature,
   Note,
+  SequencerMode,
   SingingStoreState,
   SingingStoreTypes,
   SaveResultObject,
@@ -260,6 +261,7 @@ export const singingStoreState: SingingStoreState = {
   score: undefined,
   // NOTE: UIの状態は試行のためsinging.tsに局所化する+Hydrateが必要
   isShowSinger: true,
+  sequencerMode: "DEFAULT" as SequencerMode,
   sequencerZoomX: 0.5,
   sequencerZoomY: 0.75,
   sequencerScrollY: 60, // Y軸 note number
@@ -527,6 +529,17 @@ export const singingStore = createPartialStore<SingingStoreTypes>({
           timeSignature: defaultTimeSignature,
         });
       }
+    },
+  },
+
+  SET_SEQUENCER_MODE: {
+    mutation(state, { sequencerMode }: { sequencerMode: SequencerMode }) {
+      state.sequencerMode = sequencerMode;
+    },
+    async action({ commit }, { sequencerMode }) {
+      commit("SET_SEQUENCER_MODE", {
+        sequencerMode,
+      });
     },
   },
 

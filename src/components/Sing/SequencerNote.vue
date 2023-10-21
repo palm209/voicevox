@@ -85,6 +85,7 @@ export default defineComponent({
     const store = useStore();
     const state = store.state;
     const tpqn = computed(() => state.score?.tpqn ?? 480);
+    const sequencerMode = computed(() => state.sequencerMode);
     const zoomX = computed(() => state.sequencerZoomX);
     const zoomY = computed(() => state.sequencerZoomY);
     const positionX = computed(() => {

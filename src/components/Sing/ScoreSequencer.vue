@@ -5,7 +5,6 @@
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove"
     @mouseup="handleMouseUp"
-    @dblclick="addNote"
   >
     <!-- 鍵盤 -->
     <sequencer-keys />
@@ -208,6 +207,8 @@ export default defineComponent({
     const snapWidth = computed(() => {
       return snapBaseWidth.value * zoomX.value;
     });
+    // シーケンサモード
+    const sequencerMode = computed(() => state.sequencerMode);
     // シーケンサグリッド
     const gridCellTicks = snapTicks; // ひとまずスナップ幅＝グリッドセル幅
     const gridCellBaseWidth = snapBaseWidth;
@@ -272,9 +273,11 @@ export default defineComponent({
 
     // マウスダウン
     // 選択中のノートがある場合は選択リセット
-    const handleMouseDown = () => {
+    const handleMouseDown = (event: MouseEvent) => {
       if (0 < selectedNoteIds.value.length) {
         store.dispatch("CLEAR_SELECTED_NOTE_IDS");
+      } else {
+        addNote(event);
       }
     };
 

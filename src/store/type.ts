@@ -740,6 +740,21 @@ export type Score = {
   notes: Note[];
 };
 
+// シーケンサの動作モード
+// 複数のコンポーネントをまたいで状態を管理するため、Storeに持たせる
+export type SequencerMode =
+  | "DEFAULT" // デフォルト
+  | "LOCK" // 操作ロック
+  | "NOTE_SELECT_RECT" // 矩形選択(予約)
+  | "NOTE_SELECTED" // ノート選択
+  | "NOTE_DRAW" // ノート描画
+  | "NOTE_MOVE" // ノートドラッグ移動中
+  | "NOTE_RESIZE_LEFT" // ノート左端リサイズ
+  | "NOTE_RESIZE_RIGHT" // ノート右端リサイズ
+  | "SHOW_NOTE_MENU" // ノートメニュー表示
+  | "LYRIC_INPUT" // 歌詞入力
+  | "PITCH_DRAW"; // ピッチ描画(予約)
+
 export type SingingStoreState = {
   engineId?: EngineId;
   styleId?: StyleId;
@@ -747,6 +762,7 @@ export type SingingStoreState = {
   // NOTE: UIの状態などは分割・統合した方がよさそうだが、ボイス側と混在させないためいったん局所化する
   isShowSinger: boolean;
   // NOTE: オーディオ再生はボイスと同様もしくは拡張して使う？
+  sequencerMode: SequencerMode;
   sequencerZoomX: number;
   sequencerZoomY: number;
   sequencerScrollX: number;
@@ -801,6 +817,11 @@ export type SingingStoreTypes = {
   REMOVE_TIME_SIGNATURE: {
     mutation: { index: number };
     action(payload: { position: number }): void;
+  };
+
+  SET_SEQUENCER_MODE: {
+    mutation: { sequencerMode: SequencerMode };
+    action(payload: { sequencerMode: SequencerMode }): void;
   };
 
   ADD_NOTE: {
