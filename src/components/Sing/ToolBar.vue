@@ -32,7 +32,7 @@
         label="キーシフト"
         dense
         hide-bottom-space
-        class="key-shift"
+        class="key-shift q-mr-xl"
         @update:model-value="setKeyShiftInputBuffer"
         @change="setKeyShift"
       />
@@ -441,13 +441,10 @@ onUnmounted(() => {
 }
 
 .key-shift {
-  margin-left: 16px;
-  margin-right: 4px;
   width: 55px;
 }
 
 .sing-tempo {
-  margin-left: 8px;
   margin-right: 4px;
   width: 72px;
 }
