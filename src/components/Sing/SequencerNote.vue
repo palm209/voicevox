@@ -4,6 +4,8 @@
     :class="{
       selected: noteState === 'SELECTED',
       overlapping: noteState === 'OVERLAPPING',
+      invalid_lyric_data: !isValidLyricData,
+      invalid_lyric_input: !isValidLyricInput,
     }"
     :style="{
       width: `${width}px`,
@@ -24,15 +26,35 @@
       v-model.lazy.trim="lyric"
       v-focus
       class="note-lyric-input"
+      :class="{ invalid: !isValidLyricInput }"
       @mousedown.stop
       @dblclick.stop
       @keydown.stop="onLyricInputKeyDown"
       @blur="onLyricInputBlur"
     />
+    <q-tooltip
+      v-if="showInvalidLyricDataTooltip && !showLyricInput"
+      :offset="[8, 4]"
+      anchor="bottom left"
+      self="top left"
+    >
+      ひらがな/カタカナ1文字(データエラー)
+    </q-tooltip>
+    <q-tooltip
+      v-model="showInvalidLyricInputTooltip"
+      :offset="[8, 4]"
+      anchor="bottom left"
+      self="top left"
+    >
+      ひらがな/カタカナ1文字
+    </q-tooltip>
   </div>
 </template>
 
 <script setup lang="ts">
+import hasSmallLetter from "jaco/fn/hasSmallLetter";
+import isOnlyHiragana from "jaco/fn/isOnlyHiragana";
+import isOnlyKatakana from "jaco/fn/isOnlyKatakana";
 import { computed, ref } from "vue";
 import { useStore } from "@/store";
 import { Note } from "@/store/type";
@@ -106,9 +128,6 @@ const lyric = computed({
     return props.note.lyric;
   },
   set(value) {
-    if (!value) {
-      return;
-    }
     const note: Note = { ...props.note, lyric: value };
     store.dispatch("UPDATE_NOTES", { notes: [note] });
   },
@@ -116,6 +135,31 @@ const lyric = computed({
 const showLyricInput = computed(() => {
   return state.editingLyricNoteId === props.note.id;
 });
+
+// NOTE: バリデーションおよび動作メモ
+// 入力時のリアルタイムバリデーションとデータのバリデーションの両方を行いたい
+// 入力時: 空または許容する1モーラ以外の場合かつIME変換中でない場合にエラー・ちらついて邪魔なのでアニメーションしないようにする
+// データ: データのバリデーションはAPIからレスポンスを取得した後に行う(返却に含まれる)
+//
+// たぶんすでにどこかにバリデーション実装はありそう…
+// input要素とノートのバーはcomponentとしてわけたほうがよさそう
+// リアルタイムバリデーションは実行タイミングを修正すべき…
+
+// 入力中の歌詞テキストがバリデーションエラーかどうか(onkeydown時に更新)
+const isValidLyricInput = ref(false);
+
+// インポートなどの歌詞テキストがバリデーションエラーかどうか
+const isValidLyricData = computed(() => isValidLyric(lyric.value));
+
+const showInvalidLyricDataTooltip = computed(() => {
+  return !isValidLyricData.value && !showLyricInput.value;
+});
+
+// 入力時バリデーションエラー時にツールチップを表示するかどうか
+const showInvalidLyricInputTooltip = computed(() => {
+  return !isValidLyricInput.value && showLyricInput.value;
+});
+
 const contextMenu = ref<InstanceType<typeof ContextMenu>>();
 const contextMenuData = ref<[MenuItemButton]>([
   {
@@ -164,6 +208,13 @@ const onLyricInputKeyDown = (event: KeyboardEvent) => {
     const nextNoteId = notes[index + (event.shiftKey ? -1 : 1)].id;
     store.dispatch("SET_EDITING_LYRIC_NOTE_ID", { noteId: nextNoteId });
   }
+  // 入力値をバリデーションする
+  const inputElement = event.target as HTMLInputElement;
+  if (isValidLyric(inputElement.value) || !event.isComposing) {
+    isValidLyricInput.value = true;
+  } else {
+    isValidLyricInput.value = false;
+  }
   // IME変換確定時のEnterを無視する
   if (event.key === "Enter" && event.isComposing) {
     return;
@@ -178,6 +229,27 @@ const onLyricInputBlur = () => {
   if (state.editingLyricNoteId === props.note.id) {
     store.dispatch("SET_EDITING_LYRIC_NOTE_ID", { noteId: undefined });
   }
+};
+
+// 日本語1モーラまでのバリデーション
+// NOTE: データのバリデーション(レスポンスから取得する)と入力中のリアルタイムバリデーションを分けるべき
+// また、即時バリデーションを行うなら、エンジンが対応するモーラ辞書と対比させるべき
+const isValidLyric = (lyricText: string) => {
+  // ほんとは空白文字も許容しない(事前trimでもいいかも)
+  // 空文字は許容しない
+  if (lyricText === "") {
+    return false;
+  }
+  // ひらがな・カタカナ以外は許容しない
+  if (!isOnlyHiragana(lyricText) || isOnlyKatakana(lyricText)) {
+    return false;
+  }
+  // 2文字以上の場合、小文字が含まれていなければ許容しない(ゔぁなどは許可)
+  if (lyricText.length > 1 && !hasSmallLetter(lyricText)) {
+    return false;
+  }
+
+  return true;
 };
 </script>
 
@@ -202,13 +274,29 @@ const onLyricInputBlur = () => {
       background-color: hsl(130, 35%, 85%);
     }
   }
+
+  &.invalid_lyric_data {
+    .note-bar {
+      background: colors.$warning;
+    }
+
+    .note-lyric-input {
+      border-color: colors.$warning;
+    }
+  }
+
+  .invalid_lyric_input {
+    .note-lyric-input {
+      border-color: colors.$warning;
+    }
+  }
 }
 
 .note-lyric {
+  box-sizing: border-box;
   position: absolute;
   left: 0.125rem;
   bottom: 0;
-  min-width: 2rem;
   padding: 0;
   background: transparent;
   color: #121212;
@@ -218,6 +306,16 @@ const onLyricInputBlur = () => {
     1px 1px 0 #fff;
   white-space: nowrap;
   pointer-events: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0rem;
+    left: 0;
+    width: 100%;
+    height: 0.25rem;
+    background-color: rgba(0, 0, 0, 0.3); // NOTE: カラー決定後に変更
+  }
 }
 
 .note-bar {
@@ -252,8 +350,13 @@ const onLyricInputBlur = () => {
   position: absolute;
   bottom: 0;
   font-weight: 700;
-  width: 2rem;
+  min-width: 2rem;
+  max-width: 4rem;
   border: 1px solid hsl(33, 100%, 73%);
   border-radius: 0.25rem;
+
+  &.invalid {
+    border-color: colors.$warning;
+  }
 }
 </style>
